@@ -7,6 +7,7 @@ import type {
   SuccessResponse,
   SetDisabledRequest,
   SetPriorityRequest,
+  SetEndpointRequest,
   AddCredentialRequest,
   AddCredentialResponse,
   CredentialStatsResponse,
@@ -84,6 +85,18 @@ export async function setCredentialRegion(
     region: region || null,
     apiRegion: apiRegion || null,
   })
+  return data
+}
+
+// 设置凭据 endpoint
+export async function setCredentialEndpoint(
+  id: number,
+  endpoint: string | null
+): Promise<SuccessResponse> {
+  const { data } = await api.post<SuccessResponse>(
+    `/credentials/${id}/endpoint`,
+    { endpoint } as SetEndpointRequest
+  )
   return data
 }
 

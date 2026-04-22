@@ -20,6 +20,7 @@ import {
   useSetDisabled,
   useSetPriority,
   useSetRegion,
+  useSetEndpoint,
   useResetFailure,
   useForceRefreshToken,
   useDeleteCredential,
@@ -65,11 +66,14 @@ export function CredentialCard({
   const [editingRegion, setEditingRegion] = useState(false)
   const [regionValue, setRegionValue] = useState(credential.region ?? '')
   const [apiRegionValue, setApiRegionValue] = useState(credential.apiRegion ?? '')
+  const [editingEndpoint, setEditingEndpoint] = useState(false)
+  const [endpointValue, setEndpointValue] = useState(credential.endpoint ?? '')
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
   const setDisabled = useSetDisabled()
   const setPriority = useSetPriority()
   const setRegion = useSetRegion()
+  const setEndpoint = useSetEndpoint()
   const resetFailure = useResetFailure()
   const forceRefreshToken = useForceRefreshToken()
   const deleteCredential = useDeleteCredential()
@@ -119,6 +123,24 @@ export function CredentialCard({
         onSuccess: (res) => {
           toast.success(res.message)
           setEditingRegion(false)
+        },
+        onError: (err) => {
+          toast.error('操作失败: ' + (err as Error).message)
+        },
+      }
+    )
+  }
+
+  const handleEndpointChange = () => {
+    setEndpoint.mutate(
+      {
+        id: credential.id,
+        endpoint: endpointValue || null,
+      },
+      {
+        onSuccess: (res) => {
+          toast.success(res.message)
+          setEditingEndpoint(false)
         },
         onError: (err) => {
           toast.error('操作失败: ' + (err as Error).message)
@@ -335,7 +357,53 @@ export function CredentialCard({
             )}
             <div className="col-span-2">
               <span className="text-muted-foreground">Endpoint：</span>
-              <span className="font-medium">{credential.endpoint || 'ide'}</span>
+              {editingEndpoint ? (
+                <div className="inline-flex items-center gap-1 ml-1 flex-wrap">
+                  <select
+                    value={endpointValue}
+                    onChange={(e) => setEndpointValue(e.target.value)}
+                    className="flex h-7 rounded-md border border-input bg-background px-2 py-1 text-sm"
+                  >
+                    <option value="">默认值</option>
+                    <option value="ide">ide</option>
+                    <option value="cli">cli</option>
+                  </select>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 w-7 p-0"
+                    onClick={handleEndpointChange}
+                    disabled={setEndpoint.isPending}
+                  >
+                    ✓
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 w-7 p-0"
+                    onClick={() => {
+                      setEditingEndpoint(false)
+                      setEndpointValue(credential.endpoint ?? '')
+                    }}
+                  >
+                    ✕
+                  </Button>
+                </div>
+              ) : (
+                <span
+                  className="font-medium cursor-pointer hover:underline ml-1"
+                  onClick={() => {
+                    setEndpointValue(credential.endpoint ?? '')
+                    setEditingEndpoint(true)
+                  }}
+                >
+                  {credential.endpoint || '默认值'}
+                  <span className="text-xs text-muted-foreground ml-1">
+                    (生效: {credential.effectiveEndpoint})
+                  </span>
+                  <span className="text-xs text-muted-foreground ml-1">(点击编辑)</span>
+                </span>
+              )}
             </div>
             {/* Region 配置 */}
             <div className="col-span-2">

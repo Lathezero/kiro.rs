@@ -6,6 +6,7 @@ import {
   setCredentialDisabled,
   setCredentialPriority,
   setCredentialRegion,
+  setCredentialEndpoint,
   resetCredentialFailure,
   forceRefreshToken,
   getCredentialBalance,
@@ -118,6 +119,18 @@ export function useSetRegion() {
   return useMutation({
     mutationFn: ({ id, region, apiRegion }: { id: number; region: string | null; apiRegion: string | null }) =>
       setCredentialRegion(id, region, apiRegion),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['credentials'] })
+    },
+  })
+}
+
+// 设置 endpoint
+export function useSetEndpoint() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, endpoint }: { id: number; endpoint: string | null }) =>
+      setCredentialEndpoint(id, endpoint),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['credentials'] })
     },

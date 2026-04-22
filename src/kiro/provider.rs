@@ -16,7 +16,9 @@ use tokio::time::sleep;
 #[cfg(not(feature = "sensitive-logs"))]
 use crate::common::utf8::floor_char_boundary;
 use crate::http_client::{ProxyConfig, build_client};
-use crate::kiro::endpoint::{IDE_ENDPOINT_NAME, IdeEndpoint, KiroEndpoint, RequestContext};
+use crate::kiro::endpoint::{
+    CliEndpoint, IDE_ENDPOINT_NAME, IdeEndpoint, KiroEndpoint, RequestContext,
+};
 use crate::kiro::machine_id;
 use crate::kiro::model::credentials::KiroCredentials;
 use crate::kiro::token_manager::{CallContext, MultiTokenManager};
@@ -68,6 +70,8 @@ impl KiroProvider {
         let mut endpoints: HashMap<String, Arc<dyn KiroEndpoint>> = HashMap::new();
         let ide: Arc<dyn KiroEndpoint> = Arc::new(IdeEndpoint::new());
         endpoints.insert(ide.name().to_string(), ide);
+        let cli: Arc<dyn KiroEndpoint> = Arc::new(CliEndpoint::new());
+        endpoints.insert(cli.name().to_string(), cli);
         endpoints
     }
 
@@ -1088,7 +1092,7 @@ mod tests {
     use super::*;
     use crate::kiro::cooldown::CooldownReason;
     use crate::kiro::endpoint::{
-        IdeEndpoint, default_is_bearer_token_invalid, default_is_monthly_request_limit,
+        CliEndpoint, IdeEndpoint, default_is_bearer_token_invalid, default_is_monthly_request_limit,
     };
     use crate::kiro::model::credentials::KiroCredentials;
     use crate::model::config::Config;
@@ -1097,6 +1101,85 @@ mod tests {
     fn create_test_provider(config: Config, credentials: KiroCredentials) -> KiroProvider {
         let tm = MultiTokenManager::new(config, vec![credentials], None, None, false).unwrap();
         KiroProvider::new(Arc::new(tm))
+    }
+
+    #[test]
+    fn test_cli_endpoint_api_url() {
+        let config = Config::default();
+        let credentials = KiroCredentials::default();
+        let endpoint = CliEndpoint::new();
+        let machine_id = "a".repeat(64);
+        let ctx = RequestContext {
+            credentials: &credentials,
+            token: "test_token",
+            machine_id: &machine_id,
+            config: &config,
+        };
+        assert!(endpoint.api_url(&ctx).contains("amazonaws.com"));
+        assert!(endpoint.api_url(&ctx).contains("generateAssistantResponse"));
+    }
+
+    #[test]
+    fn test_cli_endpoint_decorate_api_headers() {
+        let mut config = Config::default();
+        config.region = "us-east-1".to_string();
+
+        let credentials = KiroCredentials::default();
+        let endpoint = CliEndpoint::new();
+        let machine_id = "a".repeat(64);
+        let ctx = RequestContext {
+            credentials: &credentials,
+            token: "test_token",
+            machine_id: &machine_id,
+            config: &config,
+        };
+        let request = endpoint.decorate_api(
+            reqwest::Client::new()
+                .post("https://example.com")
+                .header("content-type", "application/json")
+                .header("Connection", "close"),
+            &ctx,
+        );
+        let built = request.build().unwrap();
+
+        assert_eq!(
+            built.headers().get("x-amz-target").unwrap(),
+            "AmazonQDeveloperStreamingService.SendMessage"
+        );
+        assert_eq!(
+            built.headers().get("x-amzn-codewhisperer-optout").unwrap(),
+            "false"
+        );
+        assert_eq!(
+            built.headers().get("x-amzn-kiro-agent-mode").unwrap(),
+            "cli"
+        );
+        assert_eq!(built.headers().get(CONNECTION).unwrap(), "close");
+    }
+
+    #[test]
+    fn test_cli_endpoint_transform_api_body_rewrites_origin() {
+        let endpoint = CliEndpoint::new();
+        let machine_id = "a".repeat(64);
+        let config = Config::default();
+        let credentials = KiroCredentials::default();
+        let ctx = RequestContext {
+            credentials: &credentials,
+            token: "test_token",
+            machine_id: &machine_id,
+            config: &config,
+        };
+        let request_body = r#"{"conversationState":{"currentMessage":{"userInputMessage":{"origin":"AI_EDITOR"}},"history":[{"userInputMessage":{"origin":"AI_EDITOR"}}]}}"#;
+        let result = endpoint.transform_api_body(request_body, &ctx).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
+        assert_eq!(
+            parsed["conversationState"]["currentMessage"]["userInputMessage"]["origin"],
+            "KIRO_CLI"
+        );
+        assert_eq!(
+            parsed["conversationState"]["history"][0]["userInputMessage"]["origin"],
+            "KIRO_CLI"
+        );
     }
 
     #[test]

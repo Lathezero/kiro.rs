@@ -90,24 +90,29 @@ impl AdminService {
         let mut credentials: Vec<CredentialStatusItem> = snapshot
             .entries
             .into_iter()
-            .map(|entry| CredentialStatusItem {
-                id: entry.id,
-                priority: entry.priority,
-                disabled: entry.disabled,
-                failure_count: entry.failure_count,
-                refresh_failure_count: entry.refresh_failure_count,
-                disabled_reason: entry.disable_reason.map(|reason| format!("{:?}", reason)),
-                expires_at: entry.expires_at,
-                auth_method: entry.auth_method,
-                has_profile_arn: entry.has_profile_arn,
-                refresh_token_hash: entry.refresh_token_hash,
-                email: entry.email,
-                subscription_title: entry.subscription_title,
-                success_count: entry.success_count,
-                last_used_at: entry.last_used_at.clone(),
-                region: entry.region,
-                api_region: entry.api_region,
-                endpoint: Some(entry.endpoint.unwrap_or(default_endpoint.clone())),
+            .map(|entry| {
+                let endpoint = entry.endpoint;
+                let effective_endpoint = endpoint.clone().unwrap_or(default_endpoint.clone());
+                CredentialStatusItem {
+                    id: entry.id,
+                    priority: entry.priority,
+                    disabled: entry.disabled,
+                    failure_count: entry.failure_count,
+                    refresh_failure_count: entry.refresh_failure_count,
+                    disabled_reason: entry.disable_reason.map(|reason| format!("{:?}", reason)),
+                    expires_at: entry.expires_at,
+                    auth_method: entry.auth_method,
+                    has_profile_arn: entry.has_profile_arn,
+                    refresh_token_hash: entry.refresh_token_hash,
+                    email: entry.email,
+                    subscription_title: entry.subscription_title,
+                    success_count: entry.success_count,
+                    last_used_at: entry.last_used_at.clone(),
+                    region: entry.region,
+                    api_region: entry.api_region,
+                    endpoint,
+                    effective_endpoint,
+                }
             })
             .collect();
 
@@ -151,6 +156,28 @@ impl AdminService {
             .filter(|s| !s.is_empty());
         self.token_manager
             .set_region(id, region, api_region)
+            .map_err(|e| self.classify_error(e, id))
+    }
+
+    /// 设置凭据 endpoint
+    pub fn set_endpoint(&self, id: u64, endpoint: Option<String>) -> Result<(), AdminServiceError> {
+        let endpoint = endpoint
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty());
+
+        if let Some(name) = endpoint.as_deref()
+            && !self.known_endpoints.contains(name)
+        {
+            let mut known: Vec<&str> = self.known_endpoints.iter().map(|s| s.as_str()).collect();
+            known.sort_unstable();
+            return Err(AdminServiceError::InvalidCredential(format!(
+                "endpoint 必须是已注册值，已注册: {:?}，收到: {}",
+                known, name
+            )));
+        }
+
+        self.token_manager
+            .set_endpoint(id, endpoint)
             .map_err(|e| self.classify_error(e, id))
     }
 

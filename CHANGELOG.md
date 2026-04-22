@@ -4,6 +4,7 @@
 
 ### Added
 - **新增 Kiro API Key / headless 凭据支持** — 后端凭据模型、TokenManager、Provider 与 Admin API/UI 现已支持 `kiroApiKey` / `authMethod=api_key`，API Key 凭据会直接作为 Bearer token 使用并自动补充 `tokentype=API_KEY`；同时支持通过 `KIRO_API_KEY` 环境变量注入最高优先级凭据，补齐 machine_id 派生、额度查询兼容与 Admin 添加凭据表单切换 (`src/main.rs`, `src/kiro/model/credentials.rs`, `src/kiro/machine_id.rs`, `src/kiro/token_manager.rs`, `src/kiro/provider.rs`, `src/admin/types.rs`, `src/admin/service.rs`, `admin-ui/src/types/api.ts`, `admin-ui/src/components/add-credential-dialog.tsx`)
+- **支持按凭据切换 ide/cli endpoint 并在 Admin UI 编辑** — 新增 `CliEndpoint` 并把 provider / usage-limits 一起接入 endpoint-aware 选路，允许通过 `defaultEndpoint` 设全局默认、通过凭据 `endpoint` 做账号级覆盖；Admin API/UI 现已支持为已有凭据编辑 endpoint，并区分“显式配置值”和“最终生效值”显示 (`src/kiro/endpoint/cli.rs`, `src/kiro/endpoint/mod.rs`, `src/main.rs`, `src/kiro/provider.rs`, `src/kiro/token_manager.rs`, `src/admin/types.rs`, `src/admin/handlers.rs`, `src/admin/router.rs`, `src/admin/service.rs`, `admin-ui/src/api/credentials.ts`, `admin-ui/src/hooks/use-credentials.ts`, `admin-ui/src/components/credential-card.tsx`, `admin-ui/src/components/add-credential-dialog.tsx`, `admin-ui/src/types/api.ts`)
 
 ## [v1.1.23] - 2026-04-18
 

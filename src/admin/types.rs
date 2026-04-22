@@ -52,8 +52,10 @@ pub struct CredentialStatusItem {
     pub region: Option<String>,
     /// 凭据级 API Region（单独覆盖 API 请求）
     pub api_region: Option<String>,
-    /// 最终生效的 endpoint 名称
+    /// 凭据显式配置的 endpoint（None 表示回退到 defaultEndpoint）
     pub endpoint: Option<String>,
+    /// 最终生效的 endpoint 名称
+    pub effective_endpoint: String,
 }
 
 // ============ 操作请求 ============
@@ -82,6 +84,14 @@ pub struct SetRegionRequest {
     pub region: Option<String>,
     /// 凭据级 API Region（单独覆盖 API 请求），空字符串表示清除
     pub api_region: Option<String>,
+}
+
+/// 修改 endpoint 请求
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SetEndpointRequest {
+    /// endpoint 名称，空字符串或 null 表示回退到 defaultEndpoint
+    pub endpoint: Option<String>,
 }
 
 /// 添加凭据请求

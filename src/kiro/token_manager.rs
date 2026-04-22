@@ -30,7 +30,9 @@ use crate::kiro::background_refresh::{
     BackgroundRefreshConfig, BackgroundRefresher, RefreshResult,
 };
 use crate::kiro::cooldown::{CooldownManager, CooldownReason};
-use crate::kiro::endpoint::{IdeEndpoint, KiroEndpoint, RequestContext};
+use crate::kiro::endpoint::{
+    CLI_ENDPOINT_NAME, CliEndpoint, IDE_ENDPOINT_NAME, IdeEndpoint, KiroEndpoint, RequestContext,
+};
 use crate::kiro::fingerprint::Fingerprint;
 use crate::kiro::machine_id;
 use crate::kiro::model::credentials::KiroCredentials;
@@ -433,6 +435,17 @@ async fn refresh_idc_token(
     Ok(new_credentials)
 }
 
+fn endpoint_for_credentials(
+    credentials: &KiroCredentials,
+    config: &Config,
+) -> anyhow::Result<Box<dyn KiroEndpoint>> {
+    match credentials.effective_endpoint_name(Some(&config.default_endpoint)) {
+        IDE_ENDPOINT_NAME => Ok(Box::new(IdeEndpoint::new())),
+        CLI_ENDPOINT_NAME => Ok(Box::new(CliEndpoint::new())),
+        name => bail!("未知 endpoint: {}", name),
+    }
+}
+
 /// 获取使用额度信息
 pub(crate) async fn get_usage_limits(
     credentials: &KiroCredentials,
@@ -440,11 +453,14 @@ pub(crate) async fn get_usage_limits(
     token: &str,
     proxy: Option<&ProxyConfig>,
 ) -> anyhow::Result<UsageLimitsResponse> {
-    tracing::debug!("正在获取使用额度信息...");
+    tracing::debug!(
+        endpoint = %credentials.effective_endpoint_name(Some(&config.default_endpoint)),
+        "正在获取使用额度信息..."
+    );
 
     let machine_id = machine_id::generate_from_credentials(credentials, config)
         .ok_or_else(|| anyhow::anyhow!("无法生成 machineId"))?;
-    let endpoint = IdeEndpoint::new();
+    let endpoint = endpoint_for_credentials(credentials, config)?;
     let ctx = RequestContext {
         credentials,
         token,
@@ -2394,6 +2410,20 @@ impl MultiTokenManager {
                 .ok_or_else(|| anyhow::anyhow!("凭据不存在: {}", id))?;
             entry.credentials.region = region;
             entry.credentials.api_region = api_region;
+        }
+        self.persist_credentials()?;
+        Ok(())
+    }
+
+    /// 设置凭据 endpoint（Admin API）
+    pub fn set_endpoint(&self, id: u64, endpoint: Option<String>) -> anyhow::Result<()> {
+        {
+            let mut entries = self.entries.lock();
+            let entry = entries
+                .iter_mut()
+                .find(|e| e.id == id)
+                .ok_or_else(|| anyhow::anyhow!("凭据不存在: {}", id))?;
+            entry.credentials.endpoint = endpoint;
         }
         self.persist_credentials()?;
         Ok(())

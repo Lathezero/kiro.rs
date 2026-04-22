@@ -12,7 +12,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use clap::Parser;
-use kiro::endpoint::{IdeEndpoint, KiroEndpoint};
+use kiro::endpoint::{CliEndpoint, IdeEndpoint, KiroEndpoint};
 use kiro::model::credentials::{CredentialsConfig, KiroCredentials};
 use kiro::provider::KiroProvider;
 use kiro::token_manager::MultiTokenManager;
@@ -80,6 +80,8 @@ async fn main() {
     {
         let ide: Arc<dyn KiroEndpoint> = Arc::new(IdeEndpoint::new());
         endpoints.insert(ide.name().to_string(), ide);
+        let cli: Arc<dyn KiroEndpoint> = Arc::new(CliEndpoint::new());
+        endpoints.insert(cli.name().to_string(), cli);
     }
     let endpoint_names: Vec<String> = endpoints.keys().cloned().collect();
 

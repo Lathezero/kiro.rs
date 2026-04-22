@@ -41,8 +41,10 @@ export interface CredentialStatusItem {
   region: string | null
   /** 凭据级 API Region（单独覆盖 API 请求） */
   apiRegion: string | null
-  /** 最终生效的 endpoint */
+  /** 凭据显式配置的 endpoint，null 表示回退默认值 */
   endpoint?: string | null
+  /** 最终生效的 endpoint */
+  effectiveEndpoint: string
 }
 
 // 余额响应
@@ -124,6 +126,10 @@ export interface SetDisabledRequest {
 
 export interface SetPriorityRequest {
   priority: number
+}
+
+export interface SetEndpointRequest {
+  endpoint: string | null
 }
 
 // 添加凭据请求

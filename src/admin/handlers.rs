@@ -9,8 +9,8 @@ use axum::{
 use super::{
     middleware::AdminState,
     types::{
-        AddCredentialRequest, ImportTokenJsonRequest, SetDisabledRequest, SetPriorityRequest,
-        SetRegionRequest, SuccessResponse, UpdateProxyConfigRequest,
+        AddCredentialRequest, ImportTokenJsonRequest, SetDisabledRequest, SetEndpointRequest,
+        SetPriorityRequest, SetRegionRequest, SuccessResponse, UpdateProxyConfigRequest,
     },
 };
 
@@ -66,6 +66,23 @@ pub async fn set_credential_region(
         .set_region(id, payload.region, payload.api_region)
     {
         Ok(_) => Json(SuccessResponse::new(format!("凭据 #{} Region 已更新", id))).into_response(),
+        Err(e) => (e.status_code(), Json(e.into_response())).into_response(),
+    }
+}
+
+/// POST /api/admin/credentials/:id/endpoint
+/// 设置凭据 endpoint
+pub async fn set_credential_endpoint(
+    State(state): State<AdminState>,
+    Path(id): Path<u64>,
+    Json(payload): Json<SetEndpointRequest>,
+) -> impl IntoResponse {
+    match state.service.set_endpoint(id, payload.endpoint) {
+        Ok(_) => Json(SuccessResponse::new(format!(
+            "凭据 #{} endpoint 已更新",
+            id
+        )))
+        .into_response(),
         Err(e) => (e.status_code(), Json(e.into_response())).into_response(),
     }
 }

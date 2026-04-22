@@ -260,15 +260,19 @@ export function AddCredentialDialog({ open, onOpenChange }: AddCredentialDialogP
               <label htmlFor="endpoint" className="text-sm font-medium">
                 Endpoint
               </label>
-              <Input
+              <select
                 id="endpoint"
-                placeholder="留空使用默认值 ide"
                 value={endpoint}
                 onChange={(e) => setEndpoint(e.target.value)}
                 disabled={isPending}
-              />
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <option value="">默认值</option>
+                <option value="ide">ide</option>
+                <option value="cli">cli</option>
+              </select>
               <p className="text-xs text-muted-foreground">
-                留空使用默认 endpoint；当前可用值由服务端按已注册 endpoint 校验
+                留空时回退到全局 defaultEndpoint
               </p>
             </div>
 
