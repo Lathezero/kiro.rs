@@ -56,6 +56,12 @@ pub struct CredentialStatusItem {
     pub endpoint: Option<String>,
     /// 最终生效的 endpoint 名称
     pub effective_endpoint: String,
+    /// 是否有凭据级代理配置
+    pub has_proxy: bool,
+    /// 凭据级代理 URL（用于编辑对话框预填充）
+    pub proxy_url: Option<String>,
+    /// 是否有代理认证凭据
+    pub has_proxy_credentials: bool,
 }
 
 // ============ 操作请求 ============

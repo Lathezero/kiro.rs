@@ -112,6 +112,9 @@ impl AdminService {
                     api_region: entry.api_region,
                     endpoint,
                     effective_endpoint,
+                    has_proxy: entry.has_proxy,
+                    proxy_url: entry.proxy_url,
+                    has_proxy_credentials: entry.has_proxy_credentials,
                 }
             })
             .collect();
@@ -223,7 +226,7 @@ impl AdminService {
             .map_err(|e| self.classify_error(e, id))?;
 
         // 代理变更后清空 HTTP Client 缓存
-        if req.proxy_url.is_some() {
+        if req.proxy_url.is_some() || req.proxy_username.is_some() || req.proxy_password.is_some() {
             if let Some(provider) = &self.kiro_provider {
                 provider.clear_client_cache();
             }

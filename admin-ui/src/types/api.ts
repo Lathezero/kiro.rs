@@ -36,6 +36,7 @@ export interface CredentialStatusItem {
   successCount: number
   lastUsedAt: string | null
   hasProxy: boolean
+  hasProxyCredentials: boolean
   proxyUrl?: string
   /** 凭据级 Region（用于 Token 刷新） */
   region: string | null

@@ -617,6 +617,12 @@ pub struct CredentialEntrySnapshot {
     pub api_region: Option<String>,
     /// 最终生效的 endpoint 名称
     pub endpoint: Option<String>,
+    /// 是否有凭据级代理配置
+    pub has_proxy: bool,
+    /// 凭据级代理 URL
+    pub proxy_url: Option<String>,
+    /// 是否有代理认证凭据
+    pub has_proxy_credentials: bool,
 }
 
 /// 凭据管理器状态快照
@@ -2410,6 +2416,20 @@ impl MultiTokenManager {
                         region: e.credentials.region.clone(),
                         api_region: e.credentials.api_region.clone(),
                         endpoint: e.credentials.endpoint.clone(),
+                        has_proxy: e.credentials.proxy_url.as_ref().is_some_and(|u| {
+                            !u.is_empty()
+                                && !u.eq_ignore_ascii_case("direct")
+                        }),
+                        proxy_url: e.credentials.proxy_url.clone(),
+                        has_proxy_credentials: e
+                            .credentials
+                            .proxy_username
+                            .as_ref()
+                            .is_some_and(|u| !u.is_empty())
+                            && e.credentials
+                                .proxy_password
+                                .as_ref()
+                                .is_some_and(|p| !p.is_empty()),
                     }
                 })
                 .collect(),

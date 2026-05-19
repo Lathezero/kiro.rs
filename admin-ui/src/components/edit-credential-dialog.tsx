@@ -44,6 +44,7 @@ export function EditCredentialDialog({ open, onOpenChange, credential }: EditCre
   }, [open, credential])
 
   const hasProxy = credential.hasProxy
+  const hasProxyCreds = credential.hasProxyCredentials
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -172,11 +173,17 @@ export function EditCredentialDialog({ open, onOpenChange, credential }: EditCre
             {/* 代理配置 */}
             <div className="space-y-2">
               <label className="text-sm font-medium">
-                代理配置 {hasProxy && <span className="text-xs text-muted-foreground">（已有代理，留空不修改；输入 "direct" 清除代理）</span>}
+                代理配置
+                {hasProxy && (
+                  <span className="text-xs text-muted-foreground ml-1">
+                    （当前: {credential.proxyUrl || '未知'}
+                    {hasProxyCreds ? '，已配置认证' : ''}）
+                  </span>
+                )}
               </label>
               <Input
                 id="edit-proxyUrl"
-                placeholder='代理 URL（"direct" 不使用代理）'
+                placeholder='代理 URL（"direct" 不使用代理，留空不修改）'
                 value={proxyUrl}
                 onChange={(e) => setProxyUrl(e.target.value)}
                 disabled={isPending}
@@ -184,7 +191,7 @@ export function EditCredentialDialog({ open, onOpenChange, credential }: EditCre
               <div className="grid grid-cols-2 gap-2">
                 <Input
                   id="edit-proxyUsername"
-                  placeholder="代理用户名"
+                  placeholder={`代理用户名${hasProxyCreds ? '（留空不修改）' : ''}`}
                   value={proxyUsername}
                   onChange={(e) => setProxyUsername(e.target.value)}
                   disabled={isPending}
@@ -192,14 +199,14 @@ export function EditCredentialDialog({ open, onOpenChange, credential }: EditCre
                 <Input
                   id="edit-proxyPassword"
                   type="password"
-                  placeholder="代理密码"
+                  placeholder={`代理密码${hasProxyCreds ? '（留空不修改）' : ''}`}
                   value={proxyPassword}
                   onChange={(e) => setProxyPassword(e.target.value)}
                   disabled={isPending}
                 />
               </div>
               <p className="text-xs text-muted-foreground">
-                留空不改动。输入 "direct" 可显式不使用代理。仅填写密码不填用户名无效
+                留空不改动；输入 "direct" 显式不使用代理。如需更换凭据请同时填写用户名和密码
               </p>
             </div>
           </div>
