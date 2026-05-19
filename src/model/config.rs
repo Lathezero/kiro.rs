@@ -156,8 +156,8 @@ fn default_thinking_strategy() -> String {
     "discard".to_string()
 }
 
-fn default_8000() -> usize {
-    8000
+fn default_tool_result_max_chars() -> usize {
+    2000
 }
 
 fn default_80() -> usize {
@@ -168,16 +168,16 @@ fn default_40() -> usize {
     40
 }
 
-fn default_6000() -> usize {
-    6000
+fn default_tool_use_input_max_chars() -> usize {
+    2000
 }
 
 fn default_4000() -> usize {
     4000
 }
 
-fn default_80_turns() -> usize {
-    80
+fn default_40_turns() -> usize {
+    40
 }
 
 fn default_400k() -> usize {
@@ -222,8 +222,8 @@ pub struct CompressionConfig {
     /// thinking 块处理策略: "discard" | "truncate" | "keep"
     #[serde(default = "default_thinking_strategy")]
     pub thinking_strategy: String,
-    /// tool_result 截断阈值（字符数），默认 8000
-    #[serde(default = "default_8000")]
+    /// tool_result 截断阈值（字符数），默认 2000
+    #[serde(default = "default_tool_result_max_chars")]
     pub tool_result_max_chars: usize,
     /// 智能截断保留头部行数，默认 80
     #[serde(default = "default_80")]
@@ -231,14 +231,14 @@ pub struct CompressionConfig {
     /// 智能截断保留尾部行数，默认 40
     #[serde(default = "default_40")]
     pub tool_result_tail_lines: usize,
-    /// tool_use input 截断阈值（字符数），默认 6000
-    #[serde(default = "default_6000")]
+    /// tool_use input 截断阈值（字符数），默认 2000
+    #[serde(default = "default_tool_use_input_max_chars")]
     pub tool_use_input_max_chars: usize,
     /// 工具描述截断阈值（字符数），覆盖原 10000 硬编码，默认 4000
     #[serde(default = "default_4000")]
     pub tool_description_max_chars: usize,
-    /// 历史最大轮数，默认 80（0=不限）
-    #[serde(default = "default_80_turns")]
+    /// 历史最大轮数，默认 40（0=不限）
+    #[serde(default = "default_40_turns")]
     pub max_history_turns: usize,
     /// 历史最大字符数，默认 400000（0=不限）
     #[serde(default = "default_400k")]
@@ -266,12 +266,12 @@ impl Default for CompressionConfig {
             enabled: true,
             whitespace_compression: true,
             thinking_strategy: default_thinking_strategy(),
-            tool_result_max_chars: default_8000(),
+            tool_result_max_chars: default_tool_result_max_chars(),
             tool_result_head_lines: default_80(),
             tool_result_tail_lines: default_40(),
-            tool_use_input_max_chars: default_6000(),
+            tool_use_input_max_chars: default_tool_use_input_max_chars(),
             tool_description_max_chars: default_4000(),
-            max_history_turns: default_80_turns(),
+            max_history_turns: default_40_turns(),
             max_history_chars: default_400k(),
             image_max_long_edge: default_image_max_long_edge(),
             image_max_pixels_single: default_image_max_pixels_single(),
