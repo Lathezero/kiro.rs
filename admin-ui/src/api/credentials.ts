@@ -10,6 +10,7 @@ import type {
   SetEndpointRequest,
   AddCredentialRequest,
   AddCredentialResponse,
+  UpdateCredentialRequest,
   CredentialStatsResponse,
   CredentialAccountInfoResponse,
   ImportTokenJsonRequest,
@@ -131,6 +132,15 @@ export async function addCredential(
   req: AddCredentialRequest
 ): Promise<AddCredentialResponse> {
   const { data } = await api.post<AddCredentialResponse>('/credentials', req)
+  return data
+}
+
+// 更新凭据元数据
+export async function updateCredential(
+  id: number,
+  req: UpdateCredentialRequest
+): Promise<SuccessResponse> {
+  const { data } = await api.post<SuccessResponse>(`/credentials/${id}/update`, req)
   return data
 }
 

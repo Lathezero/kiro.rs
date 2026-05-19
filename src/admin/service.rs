@@ -22,7 +22,7 @@ use super::types::{
     AddCredentialRequest, AddCredentialResponse, BalanceResponse, CachedBalanceItem,
     CachedBalancesResponse, CredentialStatusItem, CredentialsStatusResponse, ImportAction,
     ImportItemResult, ImportSummary, ImportTokenJsonRequest, ImportTokenJsonResponse,
-    ProxyConfigResponse, TokenJsonItem, UpdateProxyConfigRequest,
+    ProxyConfigResponse, TokenJsonItem, UpdateCredentialRequest, UpdateProxyConfigRequest,
 };
 
 /// 余额缓存过期时间（秒），5 分钟
@@ -179,6 +179,57 @@ impl AdminService {
         self.token_manager
             .set_endpoint(id, endpoint)
             .map_err(|e| self.classify_error(e, id))
+    }
+
+    /// 批量更新凭据元数据
+    pub fn update_credential(
+        &self,
+        id: u64,
+        req: UpdateCredentialRequest,
+    ) -> Result<(), AdminServiceError> {
+        // endpoint 校验
+        if let Some(endpoint) = &req.endpoint {
+            let trimmed = endpoint.trim();
+            if !trimmed.is_empty() && !self.known_endpoints.contains(trimmed) {
+                let mut known: Vec<&str> =
+                    self.known_endpoints.iter().map(|s| s.as_str()).collect();
+                known.sort_unstable();
+                return Err(AdminServiceError::InvalidCredential(format!(
+                    "endpoint 必须是已注册值，已注册: {:?}，收到: {}",
+                    known, trimmed
+                )));
+            }
+        }
+
+        self.token_manager
+            .update_credential(
+                id,
+                req.priority,
+                req.region
+                    .map(|s| Some(s.trim().to_string()).filter(|s| !s.is_empty())),
+                req.api_region
+                    .map(|s| Some(s.trim().to_string()).filter(|s| !s.is_empty())),
+                req.machine_id
+                    .map(|s| Some(s.trim().to_string()).filter(|s| !s.is_empty())),
+                req.endpoint
+                    .map(|s| Some(s.trim().to_string()).filter(|s| !s.is_empty())),
+                req.proxy_url
+                    .map(|s| Some(s.trim().to_string()).filter(|s| !s.is_empty())),
+                req.proxy_username
+                    .map(|s| Some(s.trim().to_string()).filter(|s| !s.is_empty())),
+                req.proxy_password
+                    .map(|s| Some(s.trim().to_string()).filter(|s| !s.is_empty())),
+            )
+            .map_err(|e| self.classify_error(e, id))?;
+
+        // 代理变更后清空 HTTP Client 缓存
+        if req.proxy_url.is_some() {
+            if let Some(provider) = &self.kiro_provider {
+                provider.clear_client_cache();
+            }
+        }
+
+        Ok(())
     }
 
     /// 重置失败计数并重新启用

@@ -132,6 +132,18 @@ export interface SetEndpointRequest {
   endpoint: string | null
 }
 
+// 更新凭据请求
+export interface UpdateCredentialRequest {
+    priority?: number
+    region?: string
+    apiRegion?: string
+    machineId?: string
+    endpoint?: string
+    proxyUrl?: string
+    proxyUsername?: string
+    proxyPassword?: string
+}
+
 // 添加凭据请求
 export interface AddCredentialRequest {
   refreshToken?: string

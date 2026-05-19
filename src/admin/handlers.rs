@@ -10,7 +10,8 @@ use super::{
     middleware::AdminState,
     types::{
         AddCredentialRequest, ImportTokenJsonRequest, SetDisabledRequest, SetEndpointRequest,
-        SetPriorityRequest, SetRegionRequest, SuccessResponse, UpdateProxyConfigRequest,
+        SetPriorityRequest, SetRegionRequest, SuccessResponse, UpdateCredentialRequest,
+        UpdateProxyConfigRequest,
     },
 };
 
@@ -83,6 +84,19 @@ pub async fn set_credential_endpoint(
             id
         )))
         .into_response(),
+        Err(e) => (e.status_code(), Json(e.into_response())).into_response(),
+    }
+}
+
+/// POST /api/admin/credentials/:id/update
+/// 批量更新凭据元数据
+pub async fn update_credential(
+    State(state): State<AdminState>,
+    Path(id): Path<u64>,
+    Json(payload): Json<UpdateCredentialRequest>,
+) -> impl IntoResponse {
+    match state.service.update_credential(id, payload) {
+        Ok(_) => Json(SuccessResponse::new(format!("凭据 #{} 已更新", id))).into_response(),
         Err(e) => (e.status_code(), Json(e.into_response())).into_response(),
     }
 }

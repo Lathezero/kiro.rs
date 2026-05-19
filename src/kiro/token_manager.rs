@@ -2491,6 +2491,56 @@ impl MultiTokenManager {
         Ok(())
     }
 
+    /// 批量更新凭据元数据（Admin API）
+    ///
+    /// 仅更新非敏感字段（优先级、Region、endpoint、代理、MachineId）
+    pub fn update_credential(
+        &self,
+        id: u64,
+        priority: Option<u32>,
+        region: Option<Option<String>>,
+        api_region: Option<Option<String>>,
+        machine_id: Option<Option<String>>,
+        endpoint: Option<Option<String>>,
+        proxy_url: Option<Option<String>>,
+        proxy_username: Option<Option<String>>,
+        proxy_password: Option<Option<String>>,
+    ) -> anyhow::Result<()> {
+        {
+            let mut entries = self.entries.lock();
+            let entry = entries
+                .iter_mut()
+                .find(|e| e.id == id)
+                .ok_or_else(|| anyhow::anyhow!("凭据不存在: {}", id))?;
+            if let Some(p) = priority {
+                entry.credentials.priority = p;
+            }
+            if let Some(r) = region {
+                entry.credentials.region = r;
+            }
+            if let Some(ar) = api_region {
+                entry.credentials.api_region = ar;
+            }
+            if let Some(mi) = machine_id {
+                entry.credentials.machine_id = mi;
+            }
+            if let Some(ep) = endpoint {
+                entry.credentials.endpoint = ep;
+            }
+            if let Some(pu) = proxy_url {
+                entry.credentials.proxy_url = pu;
+            }
+            if let Some(pu) = proxy_username {
+                entry.credentials.proxy_username = pu;
+            }
+            if let Some(pp) = proxy_password {
+                entry.credentials.proxy_password = pp;
+            }
+        }
+        self.persist_credentials()?;
+        Ok(())
+    }
+
     /// 重置凭据失败计数并重新启用（Admin API）
     pub fn reset_and_enable(&self, id: u64) -> anyhow::Result<()> {
         {

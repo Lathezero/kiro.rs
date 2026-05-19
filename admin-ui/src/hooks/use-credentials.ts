@@ -13,6 +13,7 @@ import {
   getCachedBalances,
   getCredentialAccountInfo,
   addCredential,
+  updateCredential,
   getCredentialStats,
   resetCredentialStats,
   resetAllStats,
@@ -22,7 +23,7 @@ import {
   getGlobalConfig,
   updateGlobalConfig,
 } from '@/api/credentials'
-import type { AddCredentialRequest, ImportTokenJsonRequest, UpdateGlobalConfigRequest } from '@/types/api'
+import type { AddCredentialRequest, UpdateCredentialRequest, ImportTokenJsonRequest, UpdateGlobalConfigRequest } from '@/types/api'
 
 // 查询凭据列表
 export function useCredentials() {
@@ -142,6 +143,18 @@ export function useResetFailure() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (id: number) => resetCredentialFailure(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['credentials'] })
+    },
+  })
+}
+
+// 更新凭据元数据
+export function useUpdateCredential() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...req }: { id: number } & UpdateCredentialRequest) =>
+      updateCredential(id, req),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['credentials'] })
     },

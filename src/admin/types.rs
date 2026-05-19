@@ -94,6 +94,28 @@ pub struct SetEndpointRequest {
     pub endpoint: Option<String>,
 }
 
+/// 更新凭据请求（编辑已有凭据的元数据）
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateCredentialRequest {
+    /// 优先级
+    pub priority: Option<u32>,
+    /// Region（用于 Token 刷新）
+    pub region: Option<String>,
+    /// API Region（单独覆盖 API 请求）
+    pub api_region: Option<String>,
+    /// Machine ID
+    pub machine_id: Option<String>,
+    /// 凭据级 endpoint
+    pub endpoint: Option<String>,
+    /// 凭据级代理 URL
+    pub proxy_url: Option<String>,
+    /// 凭据级代理用户名
+    pub proxy_username: Option<String>,
+    /// 凭据级代理密码
+    pub proxy_password: Option<String>,
+}
+
 /// 添加凭据请求
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]

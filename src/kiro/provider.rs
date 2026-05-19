@@ -112,6 +112,14 @@ impl KiroProvider {
         }
     }
 
+    /// 清空凭据级代理 HTTP Client 缓存
+    ///
+    /// 凭据代理变更后调用，下次请求时自动重建
+    pub fn clear_client_cache(&self) {
+        self.client_cache.lock().clear();
+        tracing::info!("凭据代理已更新，client_cache 已清空");
+    }
+
     /// 热更新全局代理配置
     ///
     /// 重建 default_client 并清空 client_cache
