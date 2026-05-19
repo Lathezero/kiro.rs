@@ -204,6 +204,11 @@ impl AdminService {
             }
         }
 
+        // 代理变更后需清空 HTTP Client 缓存（在 move 之前检查）
+        let proxy_changed = req.proxy_url.is_some()
+            || req.proxy_username.is_some()
+            || req.proxy_password.is_some();
+
         self.token_manager
             .update_credential(
                 id,
@@ -225,8 +230,7 @@ impl AdminService {
             )
             .map_err(|e| self.classify_error(e, id))?;
 
-        // 代理变更后清空 HTTP Client 缓存
-        if req.proxy_url.is_some() || req.proxy_username.is_some() || req.proxy_password.is_some() {
+        if proxy_changed {
             if let Some(provider) = &self.kiro_provider {
                 provider.clear_client_cache();
             }
