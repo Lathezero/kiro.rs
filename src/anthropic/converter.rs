@@ -166,6 +166,7 @@ fn normalize_model_name(model: &str) -> String {
 /// - opus 且包含 4.5/4-5 → claude-opus-4.5，包含 4.7/4-7 → claude-opus-4.7，否则 → claude-opus-4.6
 /// - 所有 haiku → claude-haiku-4.5
 /// - `-thinking` / `-agentic` 后缀会被剥离后再映射
+/// - 未知模型原样透传给上游
 pub fn map_model(model: &str) -> Option<String> {
     let normalized_model = normalize_model_name(model);
 
@@ -186,7 +187,8 @@ pub fn map_model(model: &str) -> Option<String> {
     } else if normalized_model.contains("haiku") {
         Some(KIRO_MODEL_HAIKU_4_5.to_string())
     } else {
-        None
+        // 未知模型原样透传给上游 Kiro
+        Some(normalized_model)
     }
 }
 
