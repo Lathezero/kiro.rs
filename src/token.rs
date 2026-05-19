@@ -243,6 +243,13 @@ fn count_all_tokens_local(
     (system_tokens + message_tokens + tool_tokens).max(1)
 }
 
+/// 从请求体字节数估算输入 token 数
+///
+/// 用于压缩后重新估算 token 数。使用与 count_tokens 一致的比率（~3.5 字符/token）。
+pub(crate) fn estimate_tokens_from_body_bytes(body_bytes: usize) -> i32 {
+    (body_bytes as f64 / 3.5).ceil() as i32
+}
+
 /// 估算输出 tokens
 pub(crate) fn estimate_output_tokens(content: &[serde_json::Value]) -> i32 {
     let total: i32 = content

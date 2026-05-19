@@ -992,21 +992,6 @@ pub async fn post_messages(
         }
     };
 
-    // 输出压缩统计（以字节为单位；用于排查上游请求体大小限制，实测约 5MiB 左右会触发 400）
-    if let Some(ref stats) = conversion_result.compression_stats {
-        tracing::info!(
-            estimated_input_tokens,
-            bytes_saved_total = stats.total_saved(),
-            whitespace_bytes_saved = stats.whitespace_saved,
-            thinking_bytes_saved = stats.thinking_saved,
-            tool_result_bytes_saved = stats.tool_result_saved,
-            tool_use_input_bytes_saved = stats.tool_use_input_saved,
-            history_turns_removed = stats.history_turns_removed,
-            history_bytes_saved = stats.history_bytes_saved,
-            "输入压缩完成"
-        );
-    }
-
     // 构建 Kiro 请求
     let tool_name_map = conversion_result.tool_name_map;
     let mut kiro_request = KiroRequest {
@@ -1028,6 +1013,24 @@ pub async fn post_messages(
                 .into_response();
         }
     };
+
+    // 压缩后重新估算 input tokens
+    let estimated_input_tokens = token::estimate_tokens_from_body_bytes(request_body.len()) as i32;
+
+    // 输出压缩统计
+    if let Some(ref stats) = conversion_result.compression_stats {
+        tracing::info!(
+            estimated_input_tokens,
+            bytes_saved_total = stats.total_saved(),
+            whitespace_bytes_saved = stats.whitespace_saved,
+            thinking_bytes_saved = stats.thinking_saved,
+            tool_result_bytes_saved = stats.tool_result_saved,
+            tool_use_input_bytes_saved = stats.tool_use_input_saved,
+            history_turns_removed = stats.history_turns_removed,
+            history_bytes_saved = stats.history_bytes_saved,
+            "输入压缩完成"
+        );
+    }
 
     // 请求体大小预检（上游存在硬性请求体大小限制；按实际序列化后的总字节数判断）
     let max_body = compression_config.max_request_body_bytes;
