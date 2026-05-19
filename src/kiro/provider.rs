@@ -455,14 +455,8 @@ impl KiroProvider {
             }
 
             if status.as_u16() == 429 {
-                if Self::is_model_temporarily_unavailable(&body)
-                    && self.token_manager.report_model_unavailable()
-                {
-                    anyhow::bail!(
-                        "MCP 请求失败（模型暂时不可用，已触发熔断）: {} {}",
-                        status,
-                        body
-                    );
+                if Self::is_model_temporarily_unavailable(&body) {
+                    self.token_manager.report_model_unavailable(ctx.id);
                 }
 
                 let cooldown = self.handle_rate_limited_response(ctx.id, &body, retry_after);
@@ -485,16 +479,8 @@ impl KiroProvider {
                     body
                 );
 
-                // 检测 MODEL_TEMPORARILY_UNAVAILABLE 并触发熔断机制
-                if Self::is_model_temporarily_unavailable(&body)
-                    && self.token_manager.report_model_unavailable()
-                {
-                    // 熔断已触发，所有凭据已禁用，立即返回错误
-                    anyhow::bail!(
-                        "MCP 请求失败（模型暂时不可用，已触发熔断）: {} {}",
-                        status,
-                        body
-                    );
+                if Self::is_model_temporarily_unavailable(&body) {
+                    self.token_manager.report_model_unavailable(ctx.id);
                 }
 
                 last_error = Some(anyhow::anyhow!("MCP 请求失败: {} {}", status, body));
@@ -775,15 +761,8 @@ impl KiroProvider {
             }
 
             if status.as_u16() == 429 {
-                if Self::is_model_temporarily_unavailable(&body)
-                    && self.token_manager.report_model_unavailable()
-                {
-                    anyhow::bail!(
-                        "{} API 请求失败（模型暂时不可用，已触发熔断）: {} {}",
-                        api_type,
-                        status,
-                        body
-                    );
+                if Self::is_model_temporarily_unavailable(&body) {
+                    self.token_manager.report_model_unavailable(ctx.id);
                 }
 
                 let cooldown = self.handle_rate_limited_response(ctx.id, &body, retry_after);
@@ -813,15 +792,8 @@ impl KiroProvider {
                     body
                 );
 
-                if Self::is_model_temporarily_unavailable(&body)
-                    && self.token_manager.report_model_unavailable()
-                {
-                    anyhow::bail!(
-                        "{} API 请求失败（模型暂时不可用，已触发熔断）: {} {}",
-                        api_type,
-                        status,
-                        body
-                    );
+                if Self::is_model_temporarily_unavailable(&body) {
+                    self.token_manager.report_model_unavailable(ctx.id);
                 }
 
                 last_error = Some(anyhow::anyhow!(

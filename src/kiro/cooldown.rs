@@ -46,7 +46,7 @@ impl CooldownReason {
             // 长冷却（1-24 小时）
             CooldownReason::AuthenticationFailed => Duration::from_secs(3600),
             CooldownReason::AccountSuspended => Duration::from_secs(86400),
-            CooldownReason::QuotaExhausted => Duration::from_secs(86400),
+            CooldownReason::QuotaExhausted => Duration::from_secs(1800),
         }
     }
 
@@ -59,7 +59,7 @@ impl CooldownReason {
             CooldownReason::ModelUnavailable => true,
             CooldownReason::AuthenticationFailed => false,
             CooldownReason::AccountSuspended => false,
-            CooldownReason::QuotaExhausted => false,
+            CooldownReason::QuotaExhausted => true,
         }
     }
 
@@ -118,7 +118,7 @@ impl CooldownManager {
     pub fn new() -> Self {
         Self {
             entries: Mutex::new(HashMap::new()),
-            max_short_cooldown_secs: 300, // 5 分钟
+            max_short_cooldown_secs: 3600, // 1 小时
             long_cooldown_secs: 86400,    // 24 小时
         }
     }
@@ -340,7 +340,7 @@ mod tests {
         assert!(CooldownReason::RateLimitExceeded.is_auto_recoverable());
         assert!(CooldownReason::ServerError.is_auto_recoverable());
         assert!(!CooldownReason::AccountSuspended.is_auto_recoverable());
-        assert!(!CooldownReason::QuotaExhausted.is_auto_recoverable());
+        assert!(CooldownReason::QuotaExhausted.is_auto_recoverable());
     }
 
     #[test]
