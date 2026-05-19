@@ -511,6 +511,7 @@ pub(crate) async fn get_usage_limits(
 #[serde(rename_all = "snake_case")]
 pub enum DisableReason {
     /// 连续失败次数过多
+    #[allow(dead_code)]
     FailureLimit,
     /// Token 刷新连续失败次数过多
     RefreshFailureLimit,
@@ -526,6 +527,7 @@ pub enum DisableReason {
     /// 手动禁用
     Manual,
     /// 额度已用尽（如 MONTHLY_REQUEST_COUNT）
+    #[allow(dead_code)]
     QuotaExceeded,
 }
 
@@ -753,6 +755,7 @@ struct RateLimitedCredentialDiag {
 const MAX_FAILURES_PER_CREDENTIAL: u32 = 3;
 
 /// MODEL_TEMPORARILY_UNAVAILABLE 触发全局禁用的阈值
+#[allow(dead_code)]
 const MODEL_UNAVAILABLE_THRESHOLD: u32 = 2;
 
 /// 全局禁用恢复时间（分钟）
