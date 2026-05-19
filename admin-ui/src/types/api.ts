@@ -374,6 +374,7 @@ export interface GlobalConfigResponse {
   promptCacheTtlSeconds: number
   promptCacheAccountingEnabled: boolean
   defaultEndpoint: string
+  selectionMode: string
   compression: CompressionConfigResponse
 }
 
@@ -397,5 +398,6 @@ export interface UpdateGlobalConfigRequest {
   promptCacheTtlSeconds?: number
   promptCacheAccountingEnabled?: boolean
   defaultEndpoint?: string
+  selectionMode?: string
   compression?: UpdateCompressionConfigRequest
 }

@@ -86,6 +86,10 @@ pub struct Config {
     #[serde(default)]
     pub credential_rpm: Option<u32>,
 
+    /// 凭据选择策略: "balanced"（负载均衡）或 "round_robin"（纯轮询）
+    #[serde(default = "default_selection_mode")]
+    pub selection_mode: String,
+
     /// 输入压缩配置
     #[serde(default)]
     pub compression: CompressionConfig,
@@ -142,6 +146,10 @@ fn default_endpoint() -> String {
 
 fn default_prompt_cache_ttl_seconds() -> u64 {
     300
+}
+
+fn default_selection_mode() -> String {
+    "balanced".to_string()
 }
 
 fn default_tls_backend() -> TlsBackend {
@@ -303,6 +311,7 @@ impl Default for Config {
             proxy_password: None,
             admin_api_key: None,
             credential_rpm: None,
+            selection_mode: default_selection_mode(),
             compression: CompressionConfig::default(),
             prompt_cache_ttl_seconds: default_prompt_cache_ttl_seconds(),
             prompt_cache_accounting_enabled: default_true(),

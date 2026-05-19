@@ -876,6 +876,7 @@ impl AdminService {
             prompt_cache_ttl_seconds: config.prompt_cache_ttl_seconds,
             prompt_cache_accounting_enabled: config.prompt_cache_accounting_enabled,
             default_endpoint: config.default_endpoint.clone(),
+            selection_mode: config.selection_mode.clone(),
             compression: super::types::CompressionConfigResponse {
                 enabled: c.enabled,
                 whitespace_compression: c.whitespace_compression,
@@ -947,6 +948,17 @@ impl AdminService {
                     )));
                 }
                 config.default_endpoint = trimmed.to_string();
+            }
+
+            if let Some(ref mode) = req.selection_mode {
+                let trimmed = mode.trim();
+                if !matches!(trimmed, "balanced" | "round_robin") {
+                    return Err(AdminServiceError::InvalidRequest(format!(
+                        "selectionMode 必须是 balanced 或 round_robin，收到: {}",
+                        trimmed
+                    )));
+                }
+                config.selection_mode = trimmed.to_string();
             }
 
             if let Some(c) = &req.compression {

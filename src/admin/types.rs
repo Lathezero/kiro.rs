@@ -427,6 +427,8 @@ pub struct GlobalConfigResponse {
     pub prompt_cache_accounting_enabled: bool,
     /// 默认端点名称（凭据未显式指定 endpoint 时使用）
     pub default_endpoint: String,
+    /// 凭据选择策略: "balanced" 或 "round_robin"
+    pub selection_mode: String,
     /// 压缩配置
     pub compression: CompressionConfigResponse,
 }
@@ -462,6 +464,8 @@ pub struct UpdateGlobalConfigRequest {
     pub prompt_cache_accounting_enabled: Option<bool>,
     /// 默认端点名称（可选）
     pub default_endpoint: Option<String>,
+    /// 凭据选择策略: "balanced" 或 "round_robin"
+    pub selection_mode: Option<String>,
     /// 压缩配置（可选）
     pub compression: Option<UpdateCompressionConfigRequest>,
 }

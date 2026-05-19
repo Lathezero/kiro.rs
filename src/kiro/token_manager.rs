@@ -1354,9 +1354,14 @@ impl MultiTokenManager {
                 })
                 .map(|(id, _, _)| *id)
                 .collect();
-            let id = self
-                .select_best_candidate_id(&candidate_ids)
-                .ok_or_else(|| anyhow::anyhow!("没有可用凭据"))?;
+            let id = if self.config.read().selection_mode == "round_robin" {
+                let idx =
+                    self.selection_rr.fetch_add(1, Ordering::Relaxed) as usize % candidate_ids.len();
+                Some(candidate_ids[idx])
+            } else {
+                self.select_best_candidate_id(&candidate_ids)
+            }
+            .ok_or_else(|| anyhow::anyhow!("没有可用凭据"))?;
 
             // 冷却/速率限制：把“临时不可用”的凭据视为本轮不可选，从而自然分流到其他凭据。
             if let Some((reason, remaining)) = self.cooldown_manager.check_cooldown(id) {
