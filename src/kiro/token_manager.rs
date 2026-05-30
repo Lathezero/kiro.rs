@@ -986,6 +986,17 @@ impl MultiTokenManager {
         self.config.write().default_endpoint = default_endpoint;
     }
 
+    /// 热更新重试和冷却配置
+    pub fn update_retry_cooldown_config(
+        &self,
+        max_total_attempts: usize,
+        server_error_cooldown_seconds: u64,
+    ) {
+        let mut config = self.config.write();
+        config.max_total_attempts = max_total_attempts;
+        config.server_error_cooldown_seconds = server_error_cooldown_seconds;
+    }
+
     /// 热更新单凭据目标请求速率（RPM）
     pub fn update_credential_rpm(&self, rpm: Option<u32>) {
         // 更新 config 中的 credential_rpm
@@ -2125,8 +2136,12 @@ impl MultiTokenManager {
             if failure_count >= MAX_FAILURES_PER_CREDENTIAL {
                 let has_available = entries.iter().any(|e| !e.disabled);
                 drop(entries);
-                self.cooldown_manager
-                    .set_cooldown(id, CooldownReason::ServerError);
+                let cooldown = StdDuration::from_secs(self.config.read().server_error_cooldown_seconds);
+                self.cooldown_manager.set_cooldown_with_duration(
+                    id,
+                    CooldownReason::ServerError,
+                    Some(cooldown),
+                );
                 tracing::warn!(
                     "凭据 #{} 已连续失败 {} 次，进入冷却",
                     id,

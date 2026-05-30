@@ -427,6 +427,10 @@ pub struct GlobalConfigResponse {
     pub prompt_cache_accounting_enabled: bool,
     /// 默认端点名称（凭据未显式指定 endpoint 时使用）
     pub default_endpoint: String,
+    /// 单次客户端请求最多尝试请求上游的总次数
+    pub max_total_attempts: usize,
+    /// 连续失败触发服务器错误冷却的本地冷却秒数
+    pub server_error_cooldown_seconds: u64,
     /// 凭据选择策略: "balanced" 或 "round_robin"
     pub selection_mode: String,
     /// 压缩配置
@@ -464,6 +468,10 @@ pub struct UpdateGlobalConfigRequest {
     pub prompt_cache_accounting_enabled: Option<bool>,
     /// 默认端点名称（可选）
     pub default_endpoint: Option<String>,
+    /// 单次客户端请求最多尝试请求上游的总次数（可选）
+    pub max_total_attempts: Option<usize>,
+    /// 连续失败触发服务器错误冷却的本地冷却秒数（可选）
+    pub server_error_cooldown_seconds: Option<u64>,
     /// 凭据选择策略: "balanced" 或 "round_robin"
     pub selection_mode: Option<String>,
     /// 压缩配置（可选）

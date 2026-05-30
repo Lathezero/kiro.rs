@@ -34,6 +34,8 @@ export function GlobalConfigDialog({ open, onOpenChange }: GlobalConfigDialogPro
   const [promptCacheTtlSeconds, setPromptCacheTtlSeconds] = useState('300')
   const [promptCacheAccountingEnabled, setPromptCacheAccountingEnabled] = useState(true)
   const [defaultEndpoint, setDefaultEndpoint] = useState('ide')
+  const [maxTotalAttempts, setMaxTotalAttempts] = useState('3')
+  const [serverErrorCooldownSeconds, setServerErrorCooldownSeconds] = useState('120')
   const [selectionMode, setSelectionMode] = useState('balanced')
 
   // 代理设置
@@ -64,6 +66,8 @@ export function GlobalConfigDialog({ open, onOpenChange }: GlobalConfigDialogPro
       setPromptCacheTtlSeconds(globalConfig.promptCacheTtlSeconds.toString())
       setPromptCacheAccountingEnabled(globalConfig.promptCacheAccountingEnabled)
       setDefaultEndpoint(globalConfig.defaultEndpoint || 'ide')
+      setMaxTotalAttempts(globalConfig.maxTotalAttempts.toString())
+      setServerErrorCooldownSeconds(globalConfig.serverErrorCooldownSeconds.toString())
       setSelectionMode(globalConfig.selectionMode || 'balanced')
       const c = globalConfig.compression
       setCEnabled(c.enabled)
@@ -115,6 +119,18 @@ export function GlobalConfigDialog({ open, onOpenChange }: GlobalConfigDialogPro
 
     if (defaultEndpoint !== (globalConfig?.defaultEndpoint || 'ide')) {
       globalPayload.defaultEndpoint = defaultEndpoint
+      hasGlobalChanges = true
+    }
+
+    const newMaxTotalAttempts = parseInt(maxTotalAttempts, 10)
+    if (!Number.isNaN(newMaxTotalAttempts) && globalConfig && newMaxTotalAttempts !== globalConfig.maxTotalAttempts) {
+      globalPayload.maxTotalAttempts = newMaxTotalAttempts
+      hasGlobalChanges = true
+    }
+
+    const newServerErrorCooldownSeconds = parseInt(serverErrorCooldownSeconds, 10)
+    if (!Number.isNaN(newServerErrorCooldownSeconds) && globalConfig && newServerErrorCooldownSeconds !== globalConfig.serverErrorCooldownSeconds) {
+      globalPayload.serverErrorCooldownSeconds = newServerErrorCooldownSeconds
       hasGlobalChanges = true
     }
 
@@ -214,6 +230,8 @@ export function GlobalConfigDialog({ open, onOpenChange }: GlobalConfigDialogPro
                 <Input id="gcRegion" placeholder="us-east-1" value={region} onChange={(e) => setRegion(e.target.value)} disabled={isPending} />
               </div>
               {numInput('gcRpm', 'Credential RPM', credentialRpm, setCredentialRpm, '单凭据每分钟请求数上限，0 或留空使用默认策略')}
+              {numInput('gcMaxTotalAttempts', '总请求次数', maxTotalAttempts, setMaxTotalAttempts, '单次客户端请求最多尝试请求上游的总次数，最小 1')}
+              {numInput('gcServerErrorCooldown', '超时/服务器错误冷却秒数', serverErrorCooldownSeconds, setServerErrorCooldownSeconds, '连续失败触发 ServerError 冷却时使用的本地秒数，0 表示不冷却')}
               <div className="space-y-1">
                 <label htmlFor="gcPromptCacheTtl" className="text-sm font-medium">Prompt Cache TTL</label>
                 <select

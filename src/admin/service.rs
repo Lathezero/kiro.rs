@@ -876,6 +876,8 @@ impl AdminService {
             prompt_cache_ttl_seconds: config.prompt_cache_ttl_seconds,
             prompt_cache_accounting_enabled: config.prompt_cache_accounting_enabled,
             default_endpoint: config.default_endpoint.clone(),
+            max_total_attempts: config.max_total_attempts,
+            server_error_cooldown_seconds: config.server_error_cooldown_seconds,
             selection_mode: config.selection_mode.clone(),
             compression: super::types::CompressionConfigResponse {
                 enabled: c.enabled,
@@ -950,6 +952,19 @@ impl AdminService {
                 config.default_endpoint = trimmed.to_string();
             }
 
+            if let Some(max_total_attempts) = req.max_total_attempts {
+                if max_total_attempts == 0 {
+                    return Err(AdminServiceError::InvalidRequest(
+                        "总请求次数必须大于 0".to_string(),
+                    ));
+                }
+                config.max_total_attempts = max_total_attempts;
+            }
+
+            if let Some(server_error_cooldown_seconds) = req.server_error_cooldown_seconds {
+                config.server_error_cooldown_seconds = server_error_cooldown_seconds;
+            }
+
             if let Some(ref mode) = req.selection_mode {
                 let trimmed = mode.trim();
                 if !matches!(trimmed, "balanced" | "round_robin") {
@@ -993,6 +1008,14 @@ impl AdminService {
             {
                 tracing::warn!("热更新 KiroProvider default_endpoint 失败: {}", e);
             }
+        }
+
+        // 热更新重试/冷却配置
+        if req.max_total_attempts.is_some() || req.server_error_cooldown_seconds.is_some() {
+            self.token_manager.update_retry_cooldown_config(
+                config.max_total_attempts,
+                config.server_error_cooldown_seconds,
+            );
         }
 
         // 热更新 Prompt Cache 运行时配置
@@ -1113,17 +1136,27 @@ mod tests {
         serde_json::from_str(&content).unwrap()
     }
 
+    fn update_global_config_request() -> super::super::types::UpdateGlobalConfigRequest {
+        super::super::types::UpdateGlobalConfigRequest {
+            region: None,
+            credential_rpm: None,
+            prompt_cache_ttl_seconds: None,
+            prompt_cache_accounting_enabled: None,
+            default_endpoint: None,
+            max_total_attempts: None,
+            server_error_cooldown_seconds: None,
+            selection_mode: None,
+            compression: None,
+        }
+    }
+
     #[tokio::test]
     async fn test_update_global_config_default_endpoint_valid() {
         let service = create_test_service();
 
         let req = super::super::types::UpdateGlobalConfigRequest {
-            region: None,
-            credential_rpm: None,
-            prompt_cache_ttl_seconds: None,
-            prompt_cache_accounting_enabled: None,
             default_endpoint: Some("cli".to_string()),
-            compression: None,
+            ..update_global_config_request()
         };
 
         let result = service.update_global_config(req).await;
@@ -1142,12 +1175,8 @@ mod tests {
         let service = create_test_service();
 
         let req = super::super::types::UpdateGlobalConfigRequest {
-            region: None,
-            credential_rpm: None,
-            prompt_cache_ttl_seconds: None,
-            prompt_cache_accounting_enabled: None,
             default_endpoint: Some("".to_string()),
-            compression: None,
+            ..update_global_config_request()
         };
 
         let result = service.update_global_config(req).await;
@@ -1165,12 +1194,8 @@ mod tests {
         let service = create_test_service();
 
         let req = super::super::types::UpdateGlobalConfigRequest {
-            region: None,
-            credential_rpm: None,
-            prompt_cache_ttl_seconds: None,
-            prompt_cache_accounting_enabled: None,
             default_endpoint: Some("   ".to_string()),
-            compression: None,
+            ..update_global_config_request()
         };
 
         let result = service.update_global_config(req).await;
@@ -1188,12 +1213,8 @@ mod tests {
         let service = create_test_service();
 
         let req = super::super::types::UpdateGlobalConfigRequest {
-            region: None,
-            credential_rpm: None,
-            prompt_cache_ttl_seconds: None,
-            prompt_cache_accounting_enabled: None,
             default_endpoint: Some("unknown".to_string()),
-            compression: None,
+            ..update_global_config_request()
         };
 
         let result = service.update_global_config(req).await;
@@ -1208,12 +1229,8 @@ mod tests {
         let service = create_test_service();
 
         let req = super::super::types::UpdateGlobalConfigRequest {
-            region: None,
-            credential_rpm: None,
-            prompt_cache_ttl_seconds: None,
-            prompt_cache_accounting_enabled: None,
             default_endpoint: Some("  cli  ".to_string()),
-            compression: None,
+            ..update_global_config_request()
         };
 
         let result = service.update_global_config(req).await;
@@ -1232,5 +1249,80 @@ mod tests {
         let service = create_test_service();
         let config = service.get_global_config();
         assert_eq!(config.default_endpoint, "ide"); // Config::default() 的默认值
+    }
+
+    #[test]
+    fn test_get_global_config_includes_retry_cooldown_settings() {
+        let service = create_test_service();
+        let config = service.get_global_config();
+        assert_eq!(config.max_total_attempts, 3);
+        assert_eq!(config.server_error_cooldown_seconds, 120);
+    }
+
+    #[tokio::test]
+    async fn test_update_global_config_retry_cooldown_settings() {
+        let service = create_test_service();
+
+        let req = super::super::types::UpdateGlobalConfigRequest {
+            max_total_attempts: Some(5),
+            server_error_cooldown_seconds: Some(30),
+            ..update_global_config_request()
+        };
+
+        let result = service.update_global_config(req).await;
+        assert!(result.is_ok());
+
+        let config = service.get_global_config();
+        assert_eq!(config.max_total_attempts, 5);
+        assert_eq!(config.server_error_cooldown_seconds, 30);
+        assert_eq!(service.token_manager.config().max_total_attempts, 5);
+        assert_eq!(
+            service
+                .token_manager
+                .config()
+                .server_error_cooldown_seconds,
+            30
+        );
+
+        let persisted = read_persisted_config(&service);
+        assert_eq!(persisted.max_total_attempts, 5);
+        assert_eq!(persisted.server_error_cooldown_seconds, 30);
+    }
+
+    #[tokio::test]
+    async fn test_update_global_config_rejects_zero_max_total_attempts() {
+        let service = create_test_service();
+
+        let req = super::super::types::UpdateGlobalConfigRequest {
+            max_total_attempts: Some(0),
+            ..update_global_config_request()
+        };
+
+        let result = service.update_global_config(req).await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("总请求次数必须大于 0"));
+    }
+
+    #[tokio::test]
+    async fn test_update_global_config_accepts_zero_server_error_cooldown() {
+        let service = create_test_service();
+
+        let req = super::super::types::UpdateGlobalConfigRequest {
+            server_error_cooldown_seconds: Some(0),
+            ..update_global_config_request()
+        };
+
+        let result = service.update_global_config(req).await;
+        assert!(result.is_ok());
+
+        let config = service.get_global_config();
+        assert_eq!(config.server_error_cooldown_seconds, 0);
+        assert_eq!(
+            service
+                .token_manager
+                .config()
+                .server_error_cooldown_seconds,
+            0
+        );
     }
 }

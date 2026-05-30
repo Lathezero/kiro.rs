@@ -38,8 +38,8 @@ pub struct McpCallResult {
 /// 每个凭据的最大重试次数
 const MAX_RETRIES_PER_CREDENTIAL: usize = 2;
 
-/// 总重试次数硬上限（避免无限重试）
-const MAX_TOTAL_RETRIES: usize = 3;
+/// 单次客户端请求的默认最大上游尝试次数
+const DEFAULT_MAX_TOTAL_ATTEMPTS: usize = 3;
 
 /// 429 冷却默认时长（无 Retry-After 时使用 CooldownManager 的默认递增策略）
 const DEFAULT_RATE_LIMIT_COOLDOWN_SECS: u64 = 60;
@@ -281,7 +281,7 @@ impl KiroProvider {
         if available == 0 {
             anyhow::bail!("没有可用的凭据");
         }
-        let max_retries = (total_credentials * MAX_RETRIES_PER_CREDENTIAL).min(MAX_TOTAL_RETRIES);
+        let max_retries = self.max_total_attempts(total_credentials);
         let mut last_error: Option<anyhow::Error> = None;
         let mut forced_token_refresh: HashSet<u64> = HashSet::new();
 
@@ -519,8 +519,7 @@ impl KiroProvider {
     ///
     /// 重试策略：
     /// - 每个凭据最多重试 MAX_RETRIES_PER_CREDENTIAL 次
-    /// - 总重试次数 = min(凭据数量 × 每凭据重试次数, MAX_TOTAL_RETRIES)
-    /// - 硬上限 3 次，避免无限重试
+    /// - 总尝试次数 = min(凭据数量 × 每凭据重试次数, config.maxTotalAttempts)
     async fn call_api_with_retry(
         &self,
         request_body: &str,
@@ -532,7 +531,7 @@ impl KiroProvider {
         if available == 0 {
             anyhow::bail!("没有可用的凭据");
         }
-        let max_retries = (total_credentials * MAX_RETRIES_PER_CREDENTIAL).min(MAX_TOTAL_RETRIES);
+        let max_retries = self.max_total_attempts(total_credentials);
         let mut last_error: Option<anyhow::Error> = None;
         let mut forced_token_refresh: HashSet<u64> = HashSet::new();
         let api_type = if is_stream { "流式" } else { "非流式" };
@@ -848,6 +847,16 @@ impl KiroProvider {
                 max_retries
             )
         }))
+    }
+
+    fn max_total_attempts(&self, total_credentials: usize) -> usize {
+        let configured = self.token_manager.config().max_total_attempts;
+        let max_attempts = if configured == 0 {
+            DEFAULT_MAX_TOTAL_ATTEMPTS
+        } else {
+            configured
+        };
+        (total_credentials * MAX_RETRIES_PER_CREDENTIAL).min(max_attempts).max(1)
     }
 
     fn retry_delay(attempt: usize) -> Duration {

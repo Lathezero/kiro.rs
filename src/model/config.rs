@@ -106,6 +106,14 @@ pub struct Config {
     #[serde(default = "default_endpoint")]
     pub default_endpoint: String,
 
+    /// 单次客户端请求最多尝试请求上游的总次数
+    #[serde(default = "default_max_total_attempts")]
+    pub max_total_attempts: usize,
+
+    /// 连续失败触发服务器错误冷却的本地冷却秒数
+    #[serde(default = "default_server_error_cooldown_seconds")]
+    pub server_error_cooldown_seconds: u64,
+
     /// 配置文件路径（运行时元数据，不写入 JSON）
     #[serde(skip)]
     config_path: Option<PathBuf>,
@@ -146,6 +154,14 @@ fn default_endpoint() -> String {
 
 fn default_prompt_cache_ttl_seconds() -> u64 {
     300
+}
+
+pub fn default_max_total_attempts() -> usize {
+    3
+}
+
+pub fn default_server_error_cooldown_seconds() -> u64 {
+    120
 }
 
 fn default_selection_mode() -> String {
@@ -316,6 +332,8 @@ impl Default for Config {
             prompt_cache_ttl_seconds: default_prompt_cache_ttl_seconds(),
             prompt_cache_accounting_enabled: default_true(),
             default_endpoint: default_endpoint(),
+            max_total_attempts: default_max_total_attempts(),
+            server_error_cooldown_seconds: default_server_error_cooldown_seconds(),
             config_path: None,
         }
     }

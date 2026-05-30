@@ -89,7 +89,7 @@ struct CooldownEntry {
     /// 冷却结束时间
     expires_at: Instant,
 
-    /// 连续触发次数（用于递增冷却时长）
+    /// 连续触发次数
     trigger_count: u32,
 }
 
@@ -101,6 +101,7 @@ pub struct CooldownManager {
     entries: Mutex<HashMap<u64, CooldownEntry>>,
 
     /// 最大短冷却时长（秒）
+    #[allow(dead_code)]
     max_short_cooldown_secs: u64,
 
     /// 长冷却时长（秒）
@@ -250,17 +251,10 @@ impl CooldownManager {
     }
 
     /// 计算冷却时长
-    fn calculate_cooldown_duration(&self, reason: CooldownReason, trigger_count: u32) -> Duration {
-        let base = reason.default_duration();
-
+    fn calculate_cooldown_duration(&self, reason: CooldownReason, _trigger_count: u32) -> Duration {
         if reason.is_auto_recoverable() {
-            // 可自动恢复的原因：递增冷却时长，但不超过最大值
-            let multiplier = 1.5_f64.powi((trigger_count.saturating_sub(1)) as i32);
-            let duration_secs = (base.as_secs() as f64 * multiplier) as u64;
-            let capped_secs = duration_secs.min(self.max_short_cooldown_secs);
-            Duration::from_secs(capped_secs)
+            reason.default_duration()
         } else {
-            // 不可自动恢复的原因：使用长冷却时长
             Duration::from_secs(self.long_cooldown_secs)
         }
     }
@@ -321,18 +315,15 @@ mod tests {
     }
 
     #[test]
-    fn test_cooldown_incremental() {
+    fn test_cooldown_not_incremental() {
         let manager = CooldownManager::new();
 
-        // 第一次冷却
         let d1 = manager.set_cooldown(1, CooldownReason::RateLimitExceeded);
 
-        // 清除后再次触发，应该有更长的冷却
         manager.clear_cooldown(1);
         let d2 = manager.set_cooldown(1, CooldownReason::RateLimitExceeded);
 
-        // 由于触发次数增加，第二次冷却应该更长
-        assert!(d2 >= d1);
+        assert_eq!(d2, d1);
     }
 
     #[test]
